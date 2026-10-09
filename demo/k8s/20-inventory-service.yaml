@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-service
+  namespace: auth-demo
+  labels:
+    app: inventory-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inventory-service
+  template:
+    metadata:
+      labels:
+        app: inventory-service
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: inventory
+          image: demo-service:demo
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MODE
+              value: inventory
+            - name: SERVICE_NAME
+              value: inventory-service
+            - name: STS_URL
+              value: http://rust-auth-sts.auth-demo.svc.cluster.local
+            - name: ISSUER
+              value: http://rust-auth-sts.auth-demo.svc.cluster.local
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 20m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-service
+  namespace: auth-demo
+spec:
+  selector:
+    app: inventory-service
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

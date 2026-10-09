@@ -1,4 +1,26 @@
+# Build output
 /target
-.idea
-secrets/
+target/
+**/*.rs.bk
+
+# Local configuration and secrets
 .env
+.env.*
+!.env.example
+secrets/
+demo/.secrets/
+*.secret
+*.pem
+*.key
+!tests/fixtures/keys/*.pem
+
+# IDE / OS
+.idea
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs.txt

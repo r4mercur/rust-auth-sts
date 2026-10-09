@@ -1,0 +1,14 @@
+[
+  {
+    "id": "service-a",
+    "secret_hash": "$argon2id$v=19$m=19456,t=2,p=1$ZgUWQuwN88YDuiABnvADww$NF/zhzNU9c7UuI832AoUznGrtf+iGxNAUGgHpvDqJ1c",
+    "allowed_scopes": ["service.read", "service.write"],
+    "allowed_audiences": ["service-b"]
+  },
+  {
+    "id": "service-c",
+    "secret_hash": "$argon2id$v=19$m=19456,t=2,p=1$JHuui+RymihhkNUnfny5bw$niOHL91ttrjmJmL6fDiO3HnSEF9lnJjZitGZPeph1K8",
+    "allowed_scopes": ["service.read"],
+    "allowed_audiences": ["service-b"]
+  }
+]

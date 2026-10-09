@@ -1,5 +1,11 @@
 target
 .git
 .gitignore
+.idea
+.env
 Dockerfile
 secrets
+tests
+demo
+*.pem
+.env.*

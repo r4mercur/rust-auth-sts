@@ -1,21 +1,26 @@
-use crate::{config::AppConfig, crypto::keys::{KeyMaterial, header_with_kid}, models::claims::Claims};
-use jsonwebtoken::encode;
+use crate::{config::AppConfig, crypto::keys::SigningKey, models::claims::Claims};
+use jsonwebtoken::{encode, Algorithm, Header};
 use time::{OffsetDateTime, Duration};
 use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct TokenService {
     cfg: AppConfig,
-    keys: KeyMaterial,
+    key: SigningKey,
+}
+
+pub struct TokenSubject {
+    pub sub: String,
+    pub sub_type: &'static str,
+    pub client_id: Option<String>,
 }
 
 impl TokenService {
-    pub fn new(cfg: AppConfig, keys: KeyMaterial) -> Self { Self { cfg, keys } }
+    pub fn new(cfg: AppConfig, key: SigningKey) -> Self { Self { cfg, key } }
 
     pub fn mint(
         &self,
-        sub: String,
-        sub_type: String,
+        subject: TokenSubject,
         aud: String,
         scope: String,
     ) -> anyhow::Result<(String, u64)> {
@@ -24,22 +29,23 @@ impl TokenService {
 
         let claims = Claims {
             iss: self.cfg.issuer.clone(),
-            sub,
-            sub_type,
+            sub: subject.sub,
+            sub_type: subject.sub_type.into(),
+            client_id: subject.client_id,
             aud,
-            scope: scope.clone(),
+            scope,
             exp: exp.unix_timestamp(),
             iat: now.unix_timestamp(),
             jti: Uuid::new_v4().to_string(),
         };
 
-        let header = header_with_kid(&self.cfg.kid);
-        let token = encode(&header, &claims, &self.keys.enc_key)?;
+        let mut header = Header::new(Algorithm::RS256);
+        header.typ = Some("at+jwt".into());
+        header.kid = Some(self.key.kid.clone());
+        let token = encode(&header, &claims, &self.key.enc_key)?;
         Ok((token, self.cfg.token_ttl_seconds))
     }
-}
 
-impl TokenService {
     pub fn get_issuer(&self) -> &str {
         &self.cfg.issuer
     }

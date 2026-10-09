@@ -1,15 +1,15 @@
 use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct TokenRequest {
-    pub grant_type: String,
-    pub client_id: String,
+    pub grant_type: Option<String>,
+    pub client_id: Option<String>,
     pub client_secret: Option<String>,
     pub scope: Option<String>,
     pub audience: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct LoginRequest {
     pub username: String,
     pub password: String,

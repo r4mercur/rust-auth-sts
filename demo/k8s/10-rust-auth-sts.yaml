@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rust-auth-sts
+  namespace: auth-demo
+  labels:
+    app: rust-auth-sts
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rust-auth-sts
+  template:
+    metadata:
+      labels:
+        app: rust-auth-sts
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: sts
+          image: rust-auth-sts:demo
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: ISSUER
+              value: http://rust-auth-sts.auth-demo.svc.cluster.local
+            - name: ACTIVE_KID
+              valueFrom:
+                configMapKeyRef:
+                  name: sts-config
+                  key: active-kid
+            - name: TOKEN_TTL_SECONDS
+              value: "120"
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: signing-keys
+              mountPath: /app/keys
+              readOnly: true
+            - name: clients
+              mountPath: /app/config
+              readOnly: true
+      volumes:
+        - name: signing-keys
+          secret:
+            secretName: sts-signing-keys
+        - name: clients
+          secret:
+            secretName: sts-clients
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rust-auth-sts
+  namespace: auth-demo
+spec:
+  selector:
+    app: rust-auth-sts
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: rust-auth-sts
+  namespace: auth-demo
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: rust-auth-sts

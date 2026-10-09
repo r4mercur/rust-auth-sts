@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-service
+  namespace: auth-demo
+  labels:
+    app: orders-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orders-service
+  template:
+    metadata:
+      labels:
+        app: orders-service
+        auth-demo/inventory-client: "true"
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: orders
+          image: demo-service:demo
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MODE
+              value: orders
+            - name: SERVICE_NAME
+              value: orders-service
+            - name: STS_URL
+              value: http://rust-auth-sts.auth-demo.svc.cluster.local
+            - name: ISSUER
+              value: http://rust-auth-sts.auth-demo.svc.cluster.local
+            - name: CLIENT_ID
+              value: orders-service
+            - name: CLIENT_SECRET_FILE
+              value: /var/run/secrets/sts/client-secret
+            - name: INVENTORY_URL
+              value: http://inventory-service.auth-demo.svc.cluster.local
+            - name: INVENTORY_AUDIENCE
+              value: inventory-service
+            - name: INVENTORY_SCOPE
+              value: inventory.read inventory.write
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 20m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: sts-credentials
+              mountPath: /var/run/secrets/sts
+              readOnly: true
+      volumes:
+        - name: sts-credentials
+          secret:
+            secretName: orders-sts-credentials
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-service
+  namespace: auth-demo
+spec:
+  selector:
+    app: orders-service
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

@@ -1,0 +1,9 @@
+[
+  {
+    "id": "user-001",
+    "username": "alice",
+    "password_hash": "$argon2id$v=19$m=19456,t=2,p=1$+bvfag5SHSPO7tvzuoFLTA$BHan58LO4arGSC7+V14HnuKP+O9rfMf37IgNfh0JogI",
+    "allowed_scopes": ["profile", "read"],
+    "allowed_audiences": ["general"]
+  }
+]
